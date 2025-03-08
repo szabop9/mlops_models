@@ -78,48 +78,48 @@ epsilons = [0.00, 0.1, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65]
 
 # Evaluate accury for adv data
 # Load and preprocess images and labels
-images_eval = datasets.MNIST(dataset_path, download=True).data[0:100].to('cpu').float() / 255.0
-images_eval = transforms.Normalize((0.1307,), (0.3081,))(images_eval)
-images_eval = images_eval.unsqueeze(1)
-labels_eval = datasets.MNIST(dataset_path, download=True).targets[0:100].to('cpu')
-
-# Perform the attack
-_, advs_eval, success_eval = attack(fmodel, images_eval, labels_eval, epsilons=epsilons)
-_, advs2_eval, success2_eval = attack(fmodel2, images_eval, labels_eval, epsilons=epsilons)
-_, advs3_eval, success3_eval = attack(fmodel3, images_eval, labels_eval, epsilons=epsilons)
-_, advs4_eval, success4_eval = attack(fmodel4, images_eval, labels_eval, epsilons=epsilons)
-accuracy_eval = [0,0,0,0]
-for i in range(100):
-    for j in range(len(epsilons)):
-        original_image = images[0].squeeze().numpy()
-        success_pic_eval = success_eval.H[i, j].item()
-        success_pic2_eval = success2_eval.H[i, j].item()
-        success_pic3_eval = success3_eval.H[i, j].item()
-        success_pic4_eval = success4_eval.H[i, j].item()
-
-        if not success_pic_eval:
-            accuracy_eval[0] += 1
-        if not success_pic2_eval:
-            accuracy_eval[1] += 1
-        if not success_pic3_eval:
-            accuracy_eval[2] += 1
-        if not success_pic4_eval:
-            accuracy_eval[3] += 1
-
-
-print(
-    "Evaluation of model inferred on adv data:"
-    f"Accuracy of initial model: {(accuracy_eval[0]/(100*12)) * 100:.2f}%, "
-    f"DeepRobust model: {(accuracy_eval[1]/(100*12)) * 100:.2f}%, "
-    f"ART model: {(accuracy_eval[2]/(100*12)) * 100:.2f}%, "
-    f"CleverHans model: {(accuracy_eval[3]/(100*12)) * 100:.2f}%")
+# images_eval = datasets.MNIST(dataset_path, download=True).data[0:100].to('cpu').float() / 255.0
+# images_eval = transforms.Normalize((0.1307,), (0.3081,))(images_eval)
+# images_eval = images_eval.unsqueeze(1)
+# labels_eval = datasets.MNIST(dataset_path, download=True).targets[0:100].to('cpu')
+#
+# # Perform the attack
+# _, advs_eval, success_eval = attack(fmodel, images_eval, labels_eval, epsilons=epsilons)
+# _, advs2_eval, success2_eval = attack(fmodel2, images_eval, labels_eval, epsilons=epsilons)
+# _, advs3_eval, success3_eval = attack(fmodel3, images_eval, labels_eval, epsilons=epsilons)
+# _, advs4_eval, success4_eval = attack(fmodel4, images_eval, labels_eval, epsilons=epsilons)
+# accuracy_eval = [0,0,0,0]
+# for i in range(100):
+#     for j in range(len(epsilons)):
+#         original_image = images[0].squeeze().numpy()
+#         success_pic_eval = success_eval.H[i, j].item()
+#         success_pic2_eval = success2_eval.H[i, j].item()
+#         success_pic3_eval = success3_eval.H[i, j].item()
+#         success_pic4_eval = success4_eval.H[i, j].item()
+#
+#         if not success_pic_eval:
+#             accuracy_eval[0] += 1
+#         if not success_pic2_eval:
+#             accuracy_eval[1] += 1
+#         if not success_pic3_eval:
+#             accuracy_eval[2] += 1
+#         if not success_pic4_eval:
+#             accuracy_eval[3] += 1
+#
+#
+# print(
+#     "Evaluation of model inferred on adv data:"
+#     f"Accuracy of initial model: {(accuracy_eval[0]/(100*12)) * 100:.2f}%, "
+#     f"DeepRobust model: {(accuracy_eval[1]/(100*12)) * 100:.2f}%, "
+#     f"ART model: {(accuracy_eval[2]/(100*12)) * 100:.2f}%, "
+#     f"CleverHans model: {(accuracy_eval[3]/(100*12)) * 100:.2f}%")
 
 
 # Load and preprocess images and labels
-images = datasets.MNIST(dataset_path, download=True).data[98:99].to('cpu').float() / 255.0
+images = datasets.MNIST(dataset_path, download=True).data[1:2].to('cpu').float() / 255.0
 images = transforms.Normalize((0.1307,), (0.3081,))(images)
 images = images.unsqueeze(1)
-labels = datasets.MNIST(dataset_path, download=True).targets[98:99].to('cpu')
+labels = datasets.MNIST(dataset_path, download=True).targets[1:2].to('cpu')
 
 # Perform the attack
 _, advs, success = attack(fmodel, images, labels, epsilons=epsilons)
