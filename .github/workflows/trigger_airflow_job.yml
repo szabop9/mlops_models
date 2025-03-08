@@ -1,0 +1,21 @@
+name: Trigger Airflow DAG on Push
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  trigger-airflow:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Send cURL Request to Airflow DAG
+        run: |
+          curl -X POST "http://${{ secrets.EC2_IP }}/api/v1/dags/convert_images_to_hdf5/dagRuns" \
+          -H "Content-Type: application/json" \
+          --user "${{ secrets.AIRFLOW_USER }}:${{ secrets.AIRFLOW_PASSWORD }}" \
+          --data "{\"conf\":{\"dataset_name\": \"mnist\"}}"
