@@ -12,7 +12,7 @@ DATA_BASE_DIR = "../data"
 
 # Function to load PNG images and labels dynamically
 def load_images_and_labels(dataset_name, **kwargs):
-    dataset_name = "mnist"
+    # dataset_name = "mnist"
     dataset_path = os.path.join(DATA_BASE_DIR, dataset_name, "classes")
     dataset_path = "/mnt/c/dev/sagemaker_airflow_mlflow/AutomatedDefenceML/Airflow/data/mnist/classes"
 
