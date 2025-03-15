@@ -15,7 +15,7 @@ jobs:
 
       - name: Send cURL Request to Airflow DAG
         run: |
-          curl -X POST "http://${{ secrets.EC2_IP }}/api/v1/dags/convert_images_to_hdf5/dagRuns" \
+          curl -X POST "http://http://3.250.29.175/api/v1/dags/convert_images_to_hdf5/dagRuns" \
           -H "Content-Type: application/json" \
-          --user "${{ secrets.AIRFLOW_USER }}:${{ secrets.AIRFLOW_PASSWORD }}" \
+          --user "admin:admin" \
           --data "{\"conf\":{\"dataset_name\": \"mnist\"}}"
