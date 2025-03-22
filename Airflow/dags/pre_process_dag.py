@@ -102,7 +102,7 @@ def upload_to_s3(**kwargs):
 # Define DAG
 default_args = {"owner": "airflow", "start_date": datetime(2024, 3, 1)}
 
-with DAG("convert_images_to_hdf5", default_args=default_args, schedule_interval=None) as dag:
+with DAG("convert_images_to_hdf5_ec2", default_args=default_args, schedule_interval=None) as dag:
     load_task = PythonOperator(
         task_id="load_images",
         python_callable=load_images_and_labels,
