@@ -12,6 +12,8 @@ import h5py
 import numpy as np
 import boto3
 import mnist_model  # Your model file
+import mlflow
+import mlflow.pytorch
 
 # Constants
 S3_BUCKET = "ai22m020-models"
@@ -67,28 +69,62 @@ def train_model(**kwargs):
     scheduler = StepLR(optimizer, step_size=1, gamma=0.7)
     criterion = nn.CrossEntropyLoss()
 
-    model.train()
-    for epoch in range(10):
-        for batch_x, batch_y in loader:
-            batch_x, batch_y = batch_x.to(device), batch_y.to(device)
-            optimizer.zero_grad()
-            output = model(batch_x)
-            loss = criterion(output, batch_y)
-            loss.backward()
-            optimizer.step()
-        scheduler.step()
+    num_epochs = 10
+    final_loss = 0.0
 
-    local_model_path = os.path.join(MODEL_SAVE_PATH, "mnist_cnn.pt")
-    torch.save(model.state_dict(), local_model_path)
-    print(f"Model saved to {local_model_path}")
+    with mlflow.start_run(run_name="mnist-training") as run:
+        mlflow.log_param("epochs", num_epochs)
+        mlflow.log_param("learning_rate", 1.0)
+        mlflow.log_param("gamma", 0.7)
+        mlflow.log_param("batch_size", 64)
 
-    kwargs["ti"].xcom_push(key="model_file", value=local_model_path)
+        model.train()
+        for epoch in range(10):
+            running_loss = 0.0
+            for batch_x, batch_y in loader:
+                batch_x, batch_y = batch_x.to(device), batch_y.to(device)
+                optimizer.zero_grad()
+                output = model(batch_x)
+                loss = criterion(output, batch_y)
+                loss.backward()
+                optimizer.step()
+                running_loss += loss.item()
+            avg_loss = running_loss / len(loader)
+            mlflow.log_metric("loss", avg_loss, step=epoch)
+            final_loss = avg_loss
+            scheduler.step()
+
+        local_model_path = os.path.join(MODEL_SAVE_PATH, "mnist_cnn.pt")
+        torch.save(model.state_dict(), local_model_path)
+        print(f"Model saved to {local_model_path}")
+
+        # Log the model file as artifact
+        mlflow.log_artifact(local_model_path, artifact_path="models")
+
+        kwargs["ti"].xcom_push(key="model_file", value=local_model_path)
+
+        # Optional: Save HDF5 dataset file path and final loss
+        mlflow.log_param("hdf5_file", h5_file)
+        mlflow.log_metric("final_loss", final_loss)
+
+        # Store run ID if needed later
+        kwargs["ti"].xcom_push(key="mlflow_run_id", value=run.info.run_id)
 
 def upload_model_to_s3(**kwargs):
     model_path = kwargs["ti"].xcom_pull(task_ids="train_model", key="model_file")
+    run_id = kwargs["ti"].xcom_pull(task_ids="train_model", key="mlflow_run_id")
+
     s3_client = boto3.client("s3")
+    s3_key = os.path.basename(model_path)
     s3_client.upload_file(model_path, S3_BUCKET, os.path.basename(model_path))
+    s3_uri = f"s3://{S3_BUCKET}/{s3_key}"
     print(f"Uploaded model to s3://{S3_BUCKET}/{os.path.basename(model_path)}")
+
+    if run_id:
+        mlflow.set_tracking_uri("http://localhost:5000")  # or your MLflow URI
+        mlflow.set_experiment("default")
+        with mlflow.start_run(run_id=run_id):
+            mlflow.set_tag("s3_model_path", s3_uri)
 
 
 # DAG Definition
