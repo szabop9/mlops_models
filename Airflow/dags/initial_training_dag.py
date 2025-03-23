@@ -69,7 +69,7 @@ def train_model(**kwargs):
     scheduler = StepLR(optimizer, step_size=1, gamma=0.7)
     criterion = nn.CrossEntropyLoss()
 
-    num_epochs = 10
+    num_epochs = 1
     final_loss = 0.0
 
     with mlflow.start_run(run_name="mnist-training") as run:
@@ -79,7 +79,7 @@ def train_model(**kwargs):
         mlflow.log_param("batch_size", 64)
 
         model.train()
-        for epoch in range(10):
+        for epoch in range(num_epochs):
             running_loss = 0.0
             for batch_x, batch_y in loader:
                 batch_x, batch_y = batch_x.to(device), batch_y.to(device)
@@ -94,7 +94,22 @@ def train_model(**kwargs):
             final_loss = avg_loss
             scheduler.step()
 
-        local_model_path = os.path.join(MODEL_SAVE_PATH, "mnist_cnn.pt")
+        base_name = "mnist_cnn"
+        ext = ".pt"
+        existing_versions = []
+
+        # Scan local model directory
+        if os.path.exists(MODEL_SAVE_PATH):
+            for filename in os.listdir(MODEL_SAVE_PATH):
+                if filename.startswith(base_name) and filename.endswith(ext):
+                    parts = filename.replace(ext, "").split("_v")
+                    if len(parts) == 2 and parts[1].isdigit():
+                        existing_versions.append(int(parts[1]))
+
+        new_version = max(existing_versions, default=0) + 1
+        versioned_filename = f"{base_name}_v{new_version}{ext}"
+        local_model_path = os.path.join(MODEL_SAVE_PATH, versioned_filename)
+
         torch.save(model.state_dict(), local_model_path)
         print(f"Model saved to {local_model_path}")
 
@@ -121,7 +136,7 @@ def upload_model_to_s3(**kwargs):
     print(f"Uploaded model to s3://{S3_BUCKET}/{os.path.basename(model_path)}")
 
     if run_id:
-        mlflow.set_tracking_uri("http://localhost:5000")  # or your MLflow URI
+        mlflow.set_tracking_uri("http://0.0.0.0:5000")  # or your MLflow URI
         mlflow.set_experiment("default")
         with mlflow.start_run(run_id=run_id):
             mlflow.set_tag("s3_model_path", s3_uri)
