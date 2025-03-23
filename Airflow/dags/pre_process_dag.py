@@ -6,6 +6,8 @@ import h5py
 import boto3
 import numpy as np
 from PIL import Image
+from airflow.operators.trigger_dagrun import TriggerDagRunOperator
+
 
 # AWS S3 Bucket Name
 S3_BUCKET = "ai22m020-datasets"
@@ -100,7 +102,7 @@ def upload_to_s3(**kwargs):
 
 
 # Define DAG
-default_args = {"owner": "airflow", "start_date": datetime(2024, 3, 1)}
+default_args = {"owner": "airflow", "start_date": datetime.now()}
 
 with DAG("convert_images_to_hdf5_ec2", default_args=default_args, schedule_interval=None) as dag:
     load_task = PythonOperator(
@@ -112,6 +114,11 @@ with DAG("convert_images_to_hdf5_ec2", default_args=default_args, schedule_inter
     upload_task = PythonOperator(
         task_id="upload_to_s3",
         python_callable=upload_to_s3,
+    )
+
+    trigger_train_dag = TriggerDagRunOperator(
+        trigger_dag_id="train_base_model_ec2",  # This DAG's ID
+        wait_for_completion=False,
     )
 
     load_task >> upload_task  # Ensure HDF5 file is created before uploading
