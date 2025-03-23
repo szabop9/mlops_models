@@ -18,7 +18,7 @@ DATASET_PATH = "/home/ubuntu/dev/mlops_models/Airflow/data"  # Update based on E
 # Ensure data directories exist
 LOCAL_SAVE_DIR = "/home/ubuntu/data/"
 os.makedirs(LOCAL_SAVE_DIR, exist_ok=True)
-# test 10
+# test 11
 
 def load_images_and_labels(dataset_name, **kwargs):
     """Loads images from the local EC2 directory and saves them into an HDF5 file with a unique versioned name."""
@@ -119,7 +119,7 @@ with DAG("convert_images_to_hdf5_ec2", default_args=default_args, schedule_inter
     trigger_train_dag = TriggerDagRunOperator(
         task_id="download_hdf5",
         trigger_dag_id="train_base_model_ec2",  # This DAG's ID
-        wait_for_completion=False,
+        wait_for_completion=True,
     )
 
     load_task >> upload_task  # Ensure HDF5 file is created before uploading
