@@ -97,6 +97,7 @@ def train_model(**kwargs):
         base_name = "mnist_cnn"
         ext = ".pt"
         existing_versions = []
+        # test pipeline
 
         # Scan local model directory
         if os.path.exists(MODEL_SAVE_PATH):
