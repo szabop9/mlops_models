@@ -20,9 +20,11 @@ LOCAL_SAVE_DIR = "/home/ubuntu/data/"
 os.makedirs(LOCAL_SAVE_DIR, exist_ok=True)
 # test 11
 
-def load_images_and_labels(dataset_name, binarization, **kwargs):
+def load_images_and_labels(**kwargs):
     """Loads images from the local EC2 directory and saves them into an HDF5 file with a unique versioned name."""
-
+    conf = kwargs.get("dag_run").conf if kwargs.get("dag_run") else {}
+    dataset_name = conf.get("dataset_name", "mnist")
+    binarization = conf.get("binarization", False)
     dataset_path = os.path.join(DATASET_PATH, dataset_name, "classes")
 
     if not os.path.exists(dataset_path):
@@ -129,7 +131,7 @@ with DAG("convert_images_to_hdf5_ec2", default_args=default_args, schedule_inter
     load_task = PythonOperator(
         task_id="load_images",
         python_callable=load_images_and_labels,
-        #op_kwargs={"dataset_name": "mnist"},
+        # op_kwargs={"dataset_name": "mnist"},
     )
 
     upload_task = PythonOperator(
