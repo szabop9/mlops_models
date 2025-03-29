@@ -22,12 +22,11 @@ MODEL_SAVE_PATH = "/home/ubuntu/trained_models/"
 os.makedirs(MODEL_SAVE_PATH, exist_ok=True)
 
 
-def download_latest_h5_from_s3(dataset_name="AAA", binarization=True, **kwargs):
+def download_latest_h5_from_s3(**kwargs):
     conf = kwargs.get("dag_run").conf if kwargs.get("dag_run") else {}
-    dataset_name7 = conf.get("dataset_name", "default_value")
-    binarization7 = conf.get("binarization", False)
+    dataset_name = conf.get("dataset_name", "default_value")
+    binarization = conf.get("binarization", False)
 
-    raise Exception(f"{dataset_name};{binarization}________{dataset_name7};{binarization7}")
     if binarization:
         dataset_name = f"{dataset_name}_bin"
     hdf5_files = [f for f in os.listdir(LOCAL_H5_PATH) if f.startswith(dataset_name) and f.endswith(".h5")]
@@ -164,7 +163,6 @@ with DAG("train_base_model_ec2", default_args=default_args, schedule_interval=No
     download_task = PythonOperator(
         task_id="download_hdf5",
         python_callable=download_latest_h5_from_s3,
-        # op_kwargs={"dataset_name": "mnist", "binarization": True},
     )
 
     train_task = PythonOperator(
