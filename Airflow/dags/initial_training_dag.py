@@ -29,6 +29,8 @@ def download_latest_h5_from_s3(**kwargs):
 
     if binarization:
         dataset_name = f"{dataset_name}_bin"
+    else:
+        dataset_name = f"{dataset_name}_reg"
     hdf5_files = [f for f in os.listdir(LOCAL_H5_PATH) if f.startswith(dataset_name) and f.endswith(".h5")]
     if not hdf5_files:
         s3_client = boto3.client("s3")
@@ -121,7 +123,7 @@ def train_model(**kwargs):
         if binarization:
             versioned_filename = f"{base_name}_bin_v{new_version}{ext}"
         else:
-            versioned_filename = f"{base_name}_v{new_version}{ext}"
+            versioned_filename = f"{base_name}_reg_v{new_version}{ext}"
         local_model_path = os.path.join(MODEL_SAVE_PATH, versioned_filename)
 
         torch.save(model.state_dict(), local_model_path)
