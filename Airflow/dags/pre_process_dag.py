@@ -20,7 +20,7 @@ LOCAL_SAVE_DIR = "/home/ubuntu/data/"
 os.makedirs(LOCAL_SAVE_DIR, exist_ok=True)
 # test 15
 
-def load_images_and_labels(dataset_name, binarization, **kwargs):
+def load_images_and_labels(dataset_name = "mnist", binarization = True, **kwargs):
     """Loads images from the local EC2 directory and saves them into an HDF5 file with a unique versioned name."""
 
     dataset_path = os.path.join(DATASET_PATH, dataset_name, "classes")
