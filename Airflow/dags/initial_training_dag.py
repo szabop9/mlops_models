@@ -22,7 +22,8 @@ MODEL_SAVE_PATH = "/home/ubuntu/trained_models/"
 os.makedirs(MODEL_SAVE_PATH, exist_ok=True)
 
 
-def download_latest_h5_from_s3(dataset_name, binarization=True, **kwargs):
+def download_latest_h5_from_s3(dataset_name, binarization, **kwargs):
+    raise Exception(f"{dataset_name};{binarization}")
     if binarization:
         dataset_name = f"{dataset_name}_bin"
     hdf5_files = [f for f in os.listdir(LOCAL_H5_PATH) if f.startswith(dataset_name) and f.endswith(".h5")]
@@ -45,10 +46,12 @@ def download_latest_h5_from_s3(dataset_name, binarization=True, **kwargs):
         latest_file = hdf5_files[0]
         local_hdf5_path = os.path.join(LOCAL_H5_PATH, latest_file)
         kwargs["ti"].xcom_push(key="hdf5_file", value=local_hdf5_path)
+        kwargs["ti"].xcom_push(key="binarization", value=binarization)
 
 
 def train_model(**kwargs):
     h5_file = kwargs["ti"].xcom_pull(task_ids="download_hdf5", key="hdf5_file")
+    binarization = kwargs["ti"].xcom_pull(task_ids="download_hdf5", key="binarization")
     if not os.path.exists(h5_file):
         raise FileNotFoundError(f"File not found: {h5_file}")
 
@@ -97,7 +100,7 @@ def train_model(**kwargs):
             final_loss = avg_loss
             scheduler.step()
 
-        base_name = "mnist_cnn"
+        base_name = "mnist"
         ext = ".pt"
         existing_versions = []
         # test pipeline
@@ -111,7 +114,11 @@ def train_model(**kwargs):
                         existing_versions.append(int(parts[1]))
 
         new_version = max(existing_versions, default=0) + 1
-        versioned_filename = f"{base_name}_v{new_version}{ext}"
+
+        if binarization:
+            versioned_filename = f"{base_name}_bin_v{new_version}{ext}"
+        else:
+            versioned_filename = f"{base_name}_v{new_version}{ext}"
         local_model_path = os.path.join(MODEL_SAVE_PATH, versioned_filename)
 
         torch.save(model.state_dict(), local_model_path)
@@ -153,7 +160,7 @@ with DAG("train_base_model_ec2", default_args=default_args, schedule_interval=No
     download_task = PythonOperator(
         task_id="download_hdf5",
         python_callable=download_latest_h5_from_s3,
-        op_kwargs={"dataset_name": "mnist", "binarization": True},
+        # op_kwargs={"dataset_name": "mnist", "binarization": True},
     )
 
     train_task = PythonOperator(
