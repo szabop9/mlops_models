@@ -50,7 +50,7 @@ def load_images_and_labels(dataset_name = "mnist", binarization = True, **kwargs
     labels = np.array(labels, dtype=np.uint8)
 
     if binarization:
-        binary_images = (images > 127).astype(np.float32)
+        binary_images = (images > 127).astype(np.int) * 255
 
     print(f"Total images loaded: {len(images)}")
 
