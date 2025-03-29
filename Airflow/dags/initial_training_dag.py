@@ -23,7 +23,7 @@ os.makedirs(MODEL_SAVE_PATH, exist_ok=True)
 
 
 def download_latest_h5_from_s3(dataset_name="AAA", binarization=True, **kwargs):
-    conf = kwargs["conf"]
+    conf = kwargs["conf"]["dataset_name"]
     raise Exception(f"{dataset_name};{binarization}________{conf}")
     if binarization:
         dataset_name = f"{dataset_name}_bin"
