@@ -1,5 +1,4 @@
 import foolbox as fb
-import deeprobust.image.netmodels.CNN as CNN
 import torch
 from torchvision import datasets, transforms
 import mnist_model

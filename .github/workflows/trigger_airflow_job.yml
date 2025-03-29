@@ -18,4 +18,4 @@ jobs:
           curl -X POST "http://54.229.187.203:8080/api/v1/dags/convert_images_to_hdf5_ec2/dagRuns" \
           -H "Content-Type: application/json" \
           --user "admin:admin" \
-          --data "{\"conf\":{\"dataset_name\": \"mnist\"}}"
+          --data "{\"conf\":{\"dataset_name\": \"mnist\", \"binarization\": true}}"
