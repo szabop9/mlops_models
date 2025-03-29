@@ -22,8 +22,9 @@ MODEL_SAVE_PATH = "/home/ubuntu/trained_models/"
 os.makedirs(MODEL_SAVE_PATH, exist_ok=True)
 
 
-def download_latest_h5_from_s3(dataset_name, binarization, **kwargs):
-    raise Exception(f"{dataset_name};{binarization}")
+def download_latest_h5_from_s3(dataset_name="AAA", binarization=True, **kwargs):
+    conf = kwargs["conf"]
+    raise Exception(f"{dataset_name};{binarization}________{conf}")
     if binarization:
         dataset_name = f"{dataset_name}_bin"
     hdf5_files = [f for f in os.listdir(LOCAL_H5_PATH) if f.startswith(dataset_name) and f.endswith(".h5")]
