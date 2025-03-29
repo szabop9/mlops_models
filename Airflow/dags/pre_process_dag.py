@@ -18,7 +18,7 @@ DATASET_PATH = "/home/ubuntu/dev/mlops_models/Airflow/data"  # Update based on E
 # Ensure data directories exist
 LOCAL_SAVE_DIR = "/home/ubuntu/data/"
 os.makedirs(LOCAL_SAVE_DIR, exist_ok=True)
-# test 19
+# test 20
 
 def load_images_and_labels(dataset_name, binarization, **kwargs):
     """Loads images from the local EC2 directory and saves them into an HDF5 file with a unique versioned name."""
