@@ -72,7 +72,7 @@ def load_images_and_labels(**kwargs):
                     existing_versions.append(int(parts[1]))
 
     new_version = max(existing_versions, default=0) + 1
-    new_hdf5_filename = f"{dataset_name}_v{new_version}.h5"
+    new_hdf5_filename = f"{dataset_name}_reg_v{new_version}.h5"
 
     hdf5_file_path = os.path.join(LOCAL_SAVE_DIR, new_hdf5_filename)
 
