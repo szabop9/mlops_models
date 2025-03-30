@@ -25,8 +25,12 @@ os.makedirs(MODEL_SAVE_PATH, exist_ok=True)
 def download_latest_h5_from_s3(**kwargs):
     conf = kwargs.get("dag_run").conf if kwargs.get("dag_run") else {}
     dataset_name = conf.get("dataset_name", "default_value")
-    binarization = conf.get("binarization", False)
-
+    binarization_number = conf.get("binarization", "-1")
+    if binarization_number == "0":
+        binarization = False
+    else:
+        binarization = True
+    # CHECK WHY BINARIZATION PARAM IS NOT TAKEN FROM REUQEST BODY, IT IS AWLAYS FALSE TO MODEL IS OVERWRITTEN!
     if binarization:
         dataset_name = f"{dataset_name}_bin"
     else:
