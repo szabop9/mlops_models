@@ -1,5 +1,6 @@
 from airflow import DAG
 from airflow.operators.python import PythonOperator
+from airflow.operators.trigger_dagrun import TriggerDagRunOperator
 from airflow.utils.trigger_rule import TriggerRule
 from datetime import datetime
 import os
@@ -176,4 +177,13 @@ with DAG("train_base_model_ec2", default_args=default_args, schedule_interval=No
         trigger_rule=TriggerRule.ALL_SUCCESS,
     )
 
-    download_task >> train_task >> upload_task
+    trigger_train_dag = TriggerDagRunOperator(
+        task_id="train_art",
+        trigger_dag_id="train_defence_models_ec2",
+        wait_for_completion=True,
+        conf={
+            "model_name": "{{ ti.xcom_pull(task_ids='train_model', key='model_file') | basename }}"
+        },
+    )
+
+    download_task >> train_task >> upload_task >> trigger_train_dag
