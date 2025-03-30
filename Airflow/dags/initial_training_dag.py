@@ -31,6 +31,7 @@ def download_latest_h5_from_s3(**kwargs):
     else:
         binarization = True
     # CHECK WHY BINARIZATION PARAM IS NOT TAKEN FROM REUQEST BODY, IT IS AWLAYS FALSE TO MODEL IS OVERWRITTEN!
+
     if binarization:
         dataset_name = f"{dataset_name}_bin"
     else:
@@ -48,7 +49,7 @@ def download_latest_h5_from_s3(**kwargs):
 
     print(f"Downloaded {latest_file} to {local_path}")
     kwargs["ti"].xcom_push(key="hdf5_file", value=local_path)
-
+    kwargs["ti"].xcom_push(key="binarization", value=binarization)
 
 def train_model(**kwargs):
     h5_file = kwargs["ti"].xcom_pull(task_ids="download_hdf5", key="hdf5_file")
@@ -101,10 +102,6 @@ def train_model(**kwargs):
             final_loss = avg_loss
             scheduler.step()
 
-        base_name = "mnist"
-        ext = ".pt"
-        existing_versions = []
-
         if binarization:
             base_name = "mnist_bin"
         else:
@@ -117,12 +114,11 @@ def train_model(**kwargs):
             for obj in existing_files["Contents"]:
                 filename = obj["Key"]
                 if filename.startswith(base_name) and filename.endswith(".pt"):
-                    parts = filename.replace(".h5", "").split("_v")
+                    parts = filename.replace(".pt", "").split("_v")
                     if len(parts) == 2 and parts[1].isdigit():
                         existing_versions.append(int(parts[1]))
 
         new_version = max(existing_versions, default=0) + 1
-
 
         new_pt_filename = f"{base_name}_v{new_version}.pt"
 
