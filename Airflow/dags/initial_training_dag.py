@@ -182,7 +182,7 @@ with DAG("train_base_model_ec2", default_args=default_args, schedule_interval=No
         trigger_dag_id="train_defence_models_ec2",
         wait_for_completion=True,
         conf={
-            "model_name": "{{ ti.xcom_pull(task_ids='train_model', key='model_file') | basename }}"
+            "model_name": "{{ ti.xcom_pull(task_ids='train_model', key='model_file') }}"
         },
     )
 
