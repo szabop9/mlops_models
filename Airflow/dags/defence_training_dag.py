@@ -19,14 +19,14 @@ def train_art_defence_model(**kwargs):
     model = Net()
 
 
-def train_deeprobust_defence_model():
-    print("SOMETHING1")
-
-def train_cleverhans_defence_model():
-    print("SOMETHING2")
-
-def upload_defence_model():
-    print("SOMETHING3")
+# def train_deeprobust_defence_model():
+#     print("SOMETHING1")
+#
+# def train_cleverhans_defence_model():
+#     print("SOMETHING2")
+#
+# def upload_defence_model():
+#     print("SOMETHING3")
 
 # Define DAG
 default_args = {"owner": "airflow", "start_date": datetime.now()}
@@ -38,23 +38,23 @@ with DAG("train_defence_models_ec2", default_args=default_args, schedule_interva
         python_callable=train_art_defence_model
     )
 
-    train_deeprobust_task = PythonOperator(
-        task_id="train_deeprobust_model",
-        python_callable=train_deeprobust_defence_model
-    )
+    # train_deeprobust_task = PythonOperator(
+    #     task_id="train_deeprobust_model",
+    #     python_callable=train_deeprobust_defence_model
+    # )
+    #
+    # train_cleverhans_task = PythonOperator(
+    #     task_id="train_cleverhans_model",
+    #     python_callable=train_cleverhans_defence_model
+    # )
+    #
+    # upload_task = PythonOperator(
+    #     task_id="upload_defence_models",
+    #     python_callable=upload_defence_model,
+    #     trigger_rule=TriggerRule.ALL_SUCCESS
+    # )
 
-    train_cleverhans_task = PythonOperator(
-        task_id="train_cleverhans_model",
-        python_callable=train_cleverhans_defence_model
-    )
-
-    upload_task = PythonOperator(
-        task_id="upload_defence_models",
-        python_callable=upload_defence_model,
-        trigger_rule=TriggerRule.ALL_SUCCESS
-    )
-
-    train_art_task >> train_deeprobust_task >> train_deeprobust_task >> upload_task
+    train_art_task #>> train_deeprobust_task >> train_deeprobust_task >> upload_task
 
 
 class Net(nn.Module):
