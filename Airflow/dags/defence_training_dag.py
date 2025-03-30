@@ -1,11 +1,14 @@
 import argparse
-
+import h5py
+import torch
+from torch.utils.data import TensorDataset, DataLoader
 import boto3
+import h5py
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, TensorDataset, random_split
 from torchvision import datasets, transforms
 from torch.optim.lr_scheduler import StepLR
 import numpy as np
@@ -27,7 +30,9 @@ S3_BUCKET = "ai22m020-models"
 def train_art_defence_model(**kwargs):
     conf = kwargs.get("dag_run").conf if kwargs.get("dag_run") else {}
     model_name = conf.get("model_name")
+    h5_name = conf.get("h5_name")
     print(f"Training ART defence on model: {model_name}")
+    print(f"With data: {h5_name}")
 
     model = Net()
 
@@ -48,15 +53,24 @@ def train_art_defence_model(**kwargs):
         nb_classes=10,
     )
 
-    # Load MNIST dataset
-    transform = transforms.Compose([transforms.ToTensor()])
-    train_dataset = datasets.MNIST('./data', train=True, download=False, transform=transform)
-    test_dataset = datasets.MNIST('./data', train=False, transform=transform)
 
-    train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True)
-    test_loader = DataLoader(test_dataset, batch_size=1000, shuffle=False)
 
-    x, y = dataloader_to_numpy(train_loader)
+    # Load the HDF5 file
+    with h5py.File(h5_name, "r") as hf:
+        images = hf["images"][:]
+        labels = hf["labels"][:]
+
+    # Preprocess the data (normalize just like torchvision)
+    images = images.astype("float32") / 255.0
+    images = (images - 0.1307) / 0.3081  # Match torchvision normalization
+    images = torch.tensor(images).unsqueeze(1)  # Add channel dimension
+    labels = torch.tensor(labels)
+
+    # Create a TensorDataset and DataLoader
+    dataset = TensorDataset(images, labels)
+    loader = DataLoader(dataset, batch_size=64, shuffle=True)
+
+    x, y = dataloader_to_numpy(loader)
 
     # Define FGSM attack
     attack = FastGradientMethod(estimator=classifier, eps=0.1)

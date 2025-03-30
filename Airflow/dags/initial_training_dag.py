@@ -31,7 +31,6 @@ def download_latest_h5_from_s3(**kwargs):
         binarization = False
     else:
         binarization = True
-    # CHECK WHY BINARIZATION PARAM IS NOT TAKEN FROM REUQEST BODY, IT IS AWLAYS FALSE TO MODEL IS OVERWRITTEN!
 
     if binarization:
         dataset_name = f"{dataset_name}_bin"
@@ -182,7 +181,8 @@ with DAG("train_base_model_ec2", default_args=default_args, schedule_interval=No
         trigger_dag_id="train_defence_models_ec2",
         wait_for_completion=False,
         conf={
-            "model_name": "{{ ti.xcom_pull(task_ids='train_model', key='model_file') }}"
+            "model_name": "{{ ti.xcom_pull(task_ids='train_model', key='model_file') }}",
+            "h5_name": "{{ ti.xcom_pull(task_ids='download_latest_h5_from_s3', key='hdf5_file') }}"
         },
     )
 
