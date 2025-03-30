@@ -20,13 +20,13 @@ def train_art_defence_model(**kwargs):
 
 
 def train_deeprobust_defence_model():
-    return
+    print("SOMETHING1")
 
 def train_cleverhans_defence_model():
-    return
+    print("SOMETHING2")
 
 def upload_defence_model():
-    return
+    print("SOMETHING3")
 
 # Define DAG
 default_args = {"owner": "airflow", "start_date": datetime.now()}
