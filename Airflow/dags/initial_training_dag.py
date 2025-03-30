@@ -182,7 +182,7 @@ with DAG("train_base_model_ec2", default_args=default_args, schedule_interval=No
         wait_for_completion=False,
         conf={
             "model_name": "{{ ti.xcom_pull(task_ids='train_model', key='model_file') }}",
-            "h5_name": "{{ ti.xcom_pull(task_ids='download_latest_h5_from_s3', key='hdf5_file') }}"
+            "h5_name": "{{ ti.xcom_pull(task_ids='download_hdf5', key='hdf5_file') }}"
         },
     )
 

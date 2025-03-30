@@ -61,8 +61,8 @@ def train_art_defence_model(**kwargs):
         labels = hf["labels"][:]
 
     # Preprocess the data (normalize just like torchvision)
-    images = images.astype("float32") / 255.0
-    images = (images - 0.1307) / 0.3081  # Match torchvision normalization
+    images = images.astype(np.float32) / 255.0
+    images = (images - 0.1307) / 0.3081
     images = torch.tensor(images).unsqueeze(1)  # Add channel dimension
     labels = torch.tensor(labels)
 
