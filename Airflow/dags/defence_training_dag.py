@@ -1,23 +1,84 @@
 import argparse
+
+import boto3
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
+from torch.utils.data import DataLoader
 from torchvision import datasets, transforms
 from torch.optim.lr_scheduler import StepLR
+import numpy as np
+import os
 
 from datetime import datetime
 from airflow import DAG
 from airflow.operators.python import PythonOperator
 from airflow.utils.trigger_rule import TriggerRule
 
+from art.attacks.evasion import FastGradientMethod
+from art.defences.trainer import AdversarialTrainer
+from art.estimators.classification import PyTorchClassifier
+
+
+MODEL_SAVE_PATH = "/home/ubuntu/trained_models/"
+S3_BUCKET = "ai22m020-models"
 
 def train_art_defence_model(**kwargs):
     conf = kwargs.get("dag_run").conf if kwargs.get("dag_run") else {}
     model_name = conf.get("model_name")
     print(f"Training ART defence on model: {model_name}")
+
     model = Net()
 
+    state_dict = torch.load(
+        model_name, map_location=torch.device('cpu'))
+
+    model.load_state_dict(state_dict)
+
+    criterion = torch.nn.CrossEntropyLoss()
+    optimizer = optim.Adam(model.parameters(), lr=0.001)
+
+    # Wrap the model in an ART PyTorchClassifier
+    classifier = PyTorchClassifier(
+        model=model,
+        loss=criterion,
+        optimizer=optimizer,
+        input_shape=(1, 28, 28),
+        nb_classes=10,
+    )
+
+    # Load MNIST dataset
+    transform = transforms.Compose([transforms.ToTensor()])
+    train_dataset = datasets.MNIST('./data', train=True, download=False, transform=transform)
+    test_dataset = datasets.MNIST('./data', train=False, transform=transform)
+
+    train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True)
+    test_loader = DataLoader(test_dataset, batch_size=1000, shuffle=False)
+
+    x, y = dataloader_to_numpy(train_loader)
+
+    # Define FGSM attack
+    attack = FastGradientMethod(estimator=classifier, eps=0.1)
+
+    # Create adversarial trainer
+    adv_trainer = AdversarialTrainer(classifier, attacks=attack, ratio=0.5)
+
+    # Train with adversarial training
+    adv_trainer.fit(x, y, nb_epochs=1)
+
+    classifier = adv_trainer.classifier
+
+    # Save the trained model
+    classifier.save("fgsm_art_defense_model.pt", MODEL_SAVE_PATH)
+
+    s3_client = boto3.client("s3")
+    s3_key = "art/art_defence_model.pt"
+    s3_client.upload_file(f"{MODEL_SAVE_PATH}fgsm_art_defense_model.pt", S3_BUCKET, s3_key)
+
+    s3_uri = f"s3://{S3_BUCKET}/{s3_key}"
+
+    print(f"Uploaded model to {s3_uri}")
 
 # def train_deeprobust_defence_model():
 #     print("SOMETHING1")
@@ -56,6 +117,16 @@ with DAG("train_defence_models_ec2", default_args=default_args, schedule_interva
 
     train_art_task #>> train_deeprobust_task >> train_deeprobust_task >> upload_task
 
+
+def dataloader_to_numpy(data_loader):
+    all_data = []
+    all_labels = []
+    for data, labels in data_loader:
+        all_data.append(data.numpy())  # Convert to numpy
+        all_labels.append(labels.numpy())
+    x = np.concatenate(all_data, axis=0)  # Combine all batches
+    y = np.concatenate(all_labels, axis=0)
+    return x, y
 
 class Net(nn.Module):
     def __init__(self):
