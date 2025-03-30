@@ -84,11 +84,11 @@ def train_art_defence_model(**kwargs):
     classifier = adv_trainer.classifier
 
     # Save the trained model
-    classifier.save("fgsm_art_defense_model.pt", MODEL_SAVE_PATH)
+    classifier.save("art_defense_model", MODEL_SAVE_PATH)
 
     s3_client = boto3.client("s3")
     s3_key = "art/art_defence_model.pt"
-    s3_client.upload_file(f"{MODEL_SAVE_PATH}fgsm_art_defense_model.pt", S3_BUCKET, s3_key)
+    s3_client.upload_file(f"{MODEL_SAVE_PATH}art_defense_model.model", S3_BUCKET, s3_key)
 
     s3_uri = f"s3://{S3_BUCKET}/{s3_key}"
 
