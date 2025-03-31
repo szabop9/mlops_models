@@ -190,10 +190,10 @@ with DAG("train_defence_models_ec2", default_args=default_args, schedule_interva
         python_callable=train_art_defence_model
     )
 
-    train_deeprobust_task = PythonOperator(
-        task_id="train_deeprobust_model",
-        python_callable=train_deeprobust_defence_model
-    )
+    # train_deeprobust_task = PythonOperator(
+    #     task_id="train_deeprobust_model",
+    #     python_callable=train_deeprobust_defence_model
+    # )
     #
     # train_cleverhans_task = PythonOperator(
     #     task_id="train_cleverhans_model",
