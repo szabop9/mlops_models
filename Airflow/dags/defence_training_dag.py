@@ -23,9 +23,9 @@ from art.attacks.evasion import FastGradientMethod
 from art.defences.trainer import AdversarialTrainer
 from art.estimators.classification import PyTorchClassifier
 
-
 MODEL_SAVE_PATH = "/home/ubuntu/trained_models/"
-S3_BUCKET = "ai22m020-models"
+S3_BUCKET = "ai22m020-models/art"
+
 
 def train_art_defence_model(**kwargs):
     conf = kwargs.get("dag_run").conf if kwargs.get("dag_run") else {}
@@ -53,8 +53,6 @@ def train_art_defence_model(**kwargs):
         nb_classes=10,
     )
 
-
-
     # Load the HDF5 file
     with h5py.File(h5_name, "r") as hf:
         images = hf["images"][:]
@@ -79,20 +77,37 @@ def train_art_defence_model(**kwargs):
     adv_trainer = AdversarialTrainer(classifier, attacks=attack, ratio=0.5)
 
     # Train with adversarial training
-    adv_trainer.fit(x, y, nb_epochs=3)
+    adv_trainer.fit(x, y, nb_epochs=15)
 
     classifier = adv_trainer.classifier
 
-    # Save the trained model
-    classifier.save("art_defense_model", MODEL_SAVE_PATH)
+    base_name = "art_defense_model"
 
     s3_client = boto3.client("s3")
-    s3_key = "art/art_defence_model.pt"
-    s3_client.upload_file(f"{MODEL_SAVE_PATH}art_defense_model.model", S3_BUCKET, s3_key)
 
-    s3_uri = f"s3://{S3_BUCKET}/{s3_key}"
+    existing_files = s3_client.list_objects_v2(Bucket=S3_BUCKET, Prefix=base_name)
+    existing_versions = []
+    if "Contents" in existing_files:
+        for obj in existing_files["Contents"]:
+            filename = obj["Key"]
+            if filename.startswith(base_name) and filename.endswith(".pt"):
+                parts = filename.replace(".pt", "").split("_v")
+                if len(parts) == 2 and parts[1].isdigit():
+                    existing_versions.append(int(parts[1]))
+
+    new_version = max(existing_versions, default=0) + 1
+
+    new_pt_filename = f"{base_name}_v{new_version}.pt"
+
+    # Save the trained model
+    classifier.save(f"{base_name}_v{new_version}", MODEL_SAVE_PATH)
+
+    s3_client.upload_file(f"{MODEL_SAVE_PATH}{base_name}_v{new_version}", S3_BUCKET, new_pt_filename)
+
+    s3_uri = f"s3://{S3_BUCKET}/{new_pt_filename}"
 
     print(f"Uploaded model to {s3_uri}")
+
 
 # def train_deeprobust_defence_model():
 #     print("SOMETHING1")
@@ -106,8 +121,7 @@ def train_art_defence_model(**kwargs):
 # Define DAG
 default_args = {"owner": "airflow", "start_date": datetime.now()}
 
-with DAG("train_defence_models_ec2", default_args=default_args, schedule_interval=None) as  dag:
-
+with DAG("train_defence_models_ec2", default_args=default_args, schedule_interval=None) as dag:
     train_art_task = PythonOperator(
         task_id="train_art_model",
         python_callable=train_art_defence_model
@@ -129,7 +143,7 @@ with DAG("train_defence_models_ec2", default_args=default_args, schedule_interva
     #     trigger_rule=TriggerRule.ALL_SUCCESS
     # )
 
-    train_art_task #>> train_deeprobust_task >> train_deeprobust_task >> upload_task
+    train_art_task  # >> train_deeprobust_task >> train_deeprobust_task >> upload_task
 
 
 def dataloader_to_numpy(data_loader):
@@ -141,6 +155,7 @@ def dataloader_to_numpy(data_loader):
     x = np.concatenate(all_data, axis=0)  # Combine all batches
     y = np.concatenate(all_labels, axis=0)
     return x, y
+
 
 class Net(nn.Module):
     def __init__(self):
@@ -180,7 +195,7 @@ def train(args, model, device, train_loader, optimizer, epoch):
         if batch_idx % args.log_interval == 0:
             print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
                 epoch, batch_idx * len(data), len(train_loader.dataset),
-                100. * batch_idx / len(train_loader), loss.item()))
+                       100. * batch_idx / len(train_loader), loss.item()))
             if args.dry_run:
                 break
 
@@ -209,7 +224,6 @@ def main():
     parser = argparse.ArgumentParser(description='PyTorch MNIST Example')
     parser.add_argument('--batch-size', type=int, default=3064, metavar='N',
                         help='input batch size for training (default: 64)')
-
 
     parser.add_argument('--test-batch-size', type=int, default=1000, metavar='N',
                         help='input batch size for testing (default: 1000)')
@@ -253,15 +267,15 @@ def main():
         train_kwargs.update(cuda_kwargs)
         test_kwargs.update(cuda_kwargs)
 
-    transform=transforms.Compose([
+    transform = transforms.Compose([
         transforms.ToTensor(),
         transforms.Normalize((0.1307,), (0.3081,))
-        ])
+    ])
     dataset1 = datasets.MNIST('../data', train=True, download=True,
-                       transform=transform)
+                              transform=transform)
     dataset2 = datasets.MNIST('../data', train=False,
-                       transform=transform)
-    train_loader = torch.utils.data.DataLoader(dataset1,**train_kwargs)
+                              transform=transform)
+    train_loader = torch.utils.data.DataLoader(dataset1, **train_kwargs)
     test_loader = torch.utils.data.DataLoader(dataset2, **test_kwargs)
 
     model = Net().to(device)
@@ -275,4 +289,3 @@ def main():
 
     if args.save_model:
         torch.save(model.state_dict(), "models/mnist_cnn2.pt")
-
