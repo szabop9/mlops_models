@@ -24,7 +24,6 @@ from art.defences.trainer import AdversarialTrainer
 from art.estimators.classification import PyTorchClassifier
 
 from deeprobust.image.defense.fgsmtraining import FGSMtraining
-import deeprobust.image.netmodels.train_model as trainmodel
 
 MODEL_SAVE_PATH = "/home/ubuntu/trained_models/"
 S3_BUCKET = "ai22m020-models"
