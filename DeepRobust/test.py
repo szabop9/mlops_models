@@ -7,11 +7,11 @@ import h5py
 from PIL import Image
 
 # Define the base data directory
-DATA_BASE_DIR = "../data"
+DATA_BASE_DIR = "../Airflow/data"
 
 dataset_name = "mnist"
 dataset_path = os.path.join(DATA_BASE_DIR, dataset_name, "classes")
-dataset_path = "../data/mnist/classes"
+dataset_path = "../Airflow/data/mnist/classes"
 
 if not os.path.exists(dataset_path):
     raise ValueError(f"Dataset path '{dataset_path}' does not exist.")
@@ -46,7 +46,7 @@ if images is None or labels is None:
     raise ValueError("No data received from XCom!")
 
 h5_filename = f"{dataset_name}.h5"
-h5_path = os.path.join("../data", h5_filename)
+h5_path = os.path.join("../Airflow/data", h5_filename)
 
 with h5py.File(h5_path, "w") as hf:
     hf.create_dataset("images", data=images)
