@@ -26,6 +26,7 @@ os.makedirs(MODEL_SAVE_PATH, exist_ok=True)
 def download_latest_h5_from_s3(**kwargs):
     conf = kwargs.get("dag_run").conf if kwargs.get("dag_run") else {}
     dataset_name = conf.get("dataset_name", "default_value")
+    num_epochs = conf.get("epochs", 3)
     binarization_number = conf.get("binarization", "-1")
     if binarization_number == "0":
         binarization = False
@@ -50,10 +51,12 @@ def download_latest_h5_from_s3(**kwargs):
     print(f"Downloaded {latest_file} to {local_path}")
     kwargs["ti"].xcom_push(key="hdf5_file", value=local_path)
     kwargs["ti"].xcom_push(key="binarization", value=binarization)
+    kwargs["ti"].xcom_push(key="num_epochs", value=num_epochs)
 
 def train_model(**kwargs):
     h5_file = kwargs["ti"].xcom_pull(task_ids="download_hdf5", key="hdf5_file")
     binarization = kwargs["ti"].xcom_pull(task_ids="download_hdf5", key="binarization")
+    num_epochs = kwargs["ti"].xcom_pull(task_ids="download_hdf5", key="num_epochs")
     if not os.path.exists(h5_file):
         raise FileNotFoundError(f"File not found: {h5_file}")
 
@@ -77,7 +80,6 @@ def train_model(**kwargs):
     scheduler = StepLR(optimizer, step_size=1, gamma=0.7)
     criterion = nn.CrossEntropyLoss()
 
-    num_epochs = 1
     final_loss = 0.0
 
     with mlflow.start_run(run_name="mnist-training") as run:
