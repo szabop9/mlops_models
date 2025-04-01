@@ -104,7 +104,7 @@ def train_art_defence_model(**kwargs):
     # Save the trained model
     classifier.save(f"{base_name}_v{new_version}", MODEL_SAVE_PATH)
 
-    s3_client.upload_file(f"{MODEL_SAVE_PATH}{new_pt_filename}", S3_BUCKET, new_pt_filename)
+    s3_client.upload_file(f"{MODEL_SAVE_PATH}{base_name}_v{new_version}.model", S3_BUCKET, new_pt_filename)
     s3_uri = f"s3://{S3_BUCKET}/{new_pt_filename}"
     print(f"Uploaded model to {s3_uri}")
 
@@ -165,7 +165,7 @@ def train_deeprobust_defence_model(**kwargs):
     # Save the trained model
     torch.save(defense_model.state_dict(), f"{MODEL_SAVE_PATH}{base_name}_v{new_version}")
 
-    s3_client.upload_file(f"{MODEL_SAVE_PATH}{base_name}_v{new_version}", S3_BUCKET, new_pt_filename)
+    s3_client.upload_file(f"{MODEL_SAVE_PATH}{base_name}_v{new_version}.pt", S3_BUCKET, new_pt_filename)
     s3_uri = f"s3://{S3_BUCKET}/{new_pt_filename}"
     print(f"Uploaded model to {s3_uri}")
 
