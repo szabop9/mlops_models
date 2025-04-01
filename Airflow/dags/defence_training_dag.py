@@ -73,7 +73,7 @@ def train_art_defence_model(**kwargs):
     x, y = dataloader_to_numpy(loader)
 
     # Define FGSM attack
-    attack = FastGradientMethod(estimator=classifier, eps=0.4)
+    attack = FastGradientMethod(estimator=classifier, eps=0.9)
 
     # Create adversarial trainer
     adv_trainer = AdversarialTrainer(classifier, attacks=attack, ratio=0.5)
@@ -104,7 +104,7 @@ def train_art_defence_model(**kwargs):
     # Save the trained model
     classifier.save(f"{base_name}_v{new_version}", MODEL_SAVE_PATH)
 
-    s3_client.upload_file(f"{MODEL_SAVE_PATH}{base_name}_v{new_version}", S3_BUCKET, new_pt_filename)
+    s3_client.upload_file(f"{MODEL_SAVE_PATH}{new_pt_filename}.pt", S3_BUCKET, new_pt_filename)
     s3_uri = f"s3://{S3_BUCKET}/{new_pt_filename}"
     print(f"Uploaded model to {s3_uri}")
 
@@ -143,7 +143,7 @@ def train_deeprobust_defence_model(**kwargs):
     x, y = dataloader_to_numpy(loader)
 
     f = FGSMtraining(model, device)
-    defense_model = f.generate(x, y, epoch_num=3)
+    defense_model = f.generate(x, y, epoch_num=1)
 
     base_name = "deeprobust/deeprobust_defense_model"
     s3_client = boto3.client("s3")
