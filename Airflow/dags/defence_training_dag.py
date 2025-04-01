@@ -73,7 +73,7 @@ def train_art_defence_model(**kwargs):
     x, y = dataloader_to_numpy(loader)
 
     # Define FGSM attack
-    attack = FastGradientMethod(estimator=classifier, eps=0.9)
+    attack = FastGradientMethod(estimator=classifier, eps=4)
 
     # Create adversarial trainer
     adv_trainer = AdversarialTrainer(classifier, attacks=attack, ratio=0.5)
@@ -104,7 +104,7 @@ def train_art_defence_model(**kwargs):
     # Save the trained model
     classifier.save(f"{base_name}_v{new_version}", MODEL_SAVE_PATH)
 
-    s3_client.upload_file(f"{MODEL_SAVE_PATH}{new_pt_filename}.pt", S3_BUCKET, new_pt_filename)
+    s3_client.upload_file(f"{MODEL_SAVE_PATH}{new_pt_filename}", S3_BUCKET, new_pt_filename)
     s3_uri = f"s3://{S3_BUCKET}/{new_pt_filename}"
     print(f"Uploaded model to {s3_uri}")
 
