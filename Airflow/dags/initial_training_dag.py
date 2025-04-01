@@ -1,5 +1,6 @@
 from airflow import DAG
 from airflow.operators.python import PythonOperator
+from airflow.operators.trigger_dagrun import TriggerDagRunOperator
 from airflow.utils.trigger_rule import TriggerRule
 from datetime import datetime
 import os
@@ -25,32 +26,30 @@ os.makedirs(MODEL_SAVE_PATH, exist_ok=True)
 def download_latest_h5_from_s3(**kwargs):
     conf = kwargs.get("dag_run").conf if kwargs.get("dag_run") else {}
     dataset_name = conf.get("dataset_name", "default_value")
-    binarization = conf.get("binarization", False)
+    binarization_number = conf.get("binarization", "-1")
+    if binarization_number == "0":
+        binarization = False
+    else:
+        binarization = True
 
     if binarization:
         dataset_name = f"{dataset_name}_bin"
-    hdf5_files = [f for f in os.listdir(LOCAL_H5_PATH) if f.startswith(dataset_name) and f.endswith(".h5")]
-    if not hdf5_files:
-        s3_client = boto3.client("s3")
-        objects = s3_client.list_objects_v2(Bucket=HDF5_BUCKET, Prefix=dataset_name)
-
-        h5_files = [obj['Key'] for obj in objects.get("Contents", []) if obj['Key'].endswith(".h5")]
-        if not h5_files:
-            raise FileNotFoundError("No HDF5 files found in S3 bucket")
-
-        latest_file = sorted(h5_files)[-1]  # Get the latest by name versioning
-        local_path = os.path.join(LOCAL_H5_PATH, os.path.basename(latest_file))
-        s3_client.download_file(HDF5_BUCKET, latest_file, local_path)
-
-        print(f"Downloaded {latest_file} to {local_path}")
-        kwargs["ti"].xcom_push(key="hdf5_file", value=local_path)
     else:
-        hdf5_files.sort(reverse=True)
-        latest_file = hdf5_files[0]
-        local_hdf5_path = os.path.join(LOCAL_H5_PATH, latest_file)
-        kwargs["ti"].xcom_push(key="hdf5_file", value=local_hdf5_path)
-        kwargs["ti"].xcom_push(key="binarization", value=binarization)
+        dataset_name = f"{dataset_name}_reg"
+    s3_client = boto3.client("s3")
+    objects = s3_client.list_objects_v2(Bucket=HDF5_BUCKET, Prefix=dataset_name)
 
+    h5_files = [obj['Key'] for obj in objects.get("Contents", []) if obj['Key'].endswith(".h5")]
+    if not h5_files:
+        raise FileNotFoundError("No HDF5 files found in S3 bucket")
+
+    latest_file = sorted(h5_files)[-1]  # Get the latest by name versioning
+    local_path = os.path.join(LOCAL_H5_PATH, os.path.basename(latest_file))
+    s3_client.download_file(HDF5_BUCKET, latest_file, local_path)
+
+    print(f"Downloaded {latest_file} to {local_path}")
+    kwargs["ti"].xcom_push(key="hdf5_file", value=local_path)
+    kwargs["ti"].xcom_push(key="binarization", value=binarization)
 
 def train_model(**kwargs):
     h5_file = kwargs["ti"].xcom_pull(task_ids="download_hdf5", key="hdf5_file")
@@ -103,26 +102,27 @@ def train_model(**kwargs):
             final_loss = avg_loss
             scheduler.step()
 
-        base_name = "mnist"
-        ext = ".pt"
-        existing_versions = []
-        # test pipeline
+        if binarization:
+            base_name = "mnist_bin"
+        else:
+            base_name = "mnist_reg"
 
-        # Scan local model directory
-        if os.path.exists(MODEL_SAVE_PATH):
-            for filename in os.listdir(MODEL_SAVE_PATH):
-                if filename.startswith(base_name) and filename.endswith(ext):
-                    parts = filename.replace(ext, "").split("_v")
+        s3_client = boto3.client("s3")
+        existing_files = s3_client.list_objects_v2(Bucket=S3_BUCKET, Prefix=base_name)
+        existing_versions = []
+        if "Contents" in existing_files:
+            for obj in existing_files["Contents"]:
+                filename = obj["Key"]
+                if filename.startswith(base_name) and filename.endswith(".pt"):
+                    parts = filename.replace(".pt", "").split("_v")
                     if len(parts) == 2 and parts[1].isdigit():
                         existing_versions.append(int(parts[1]))
 
         new_version = max(existing_versions, default=0) + 1
 
-        if binarization:
-            versioned_filename = f"{base_name}_bin_v{new_version}{ext}"
-        else:
-            versioned_filename = f"{base_name}_v{new_version}{ext}"
-        local_model_path = os.path.join(MODEL_SAVE_PATH, versioned_filename)
+        new_pt_filename = f"{base_name}_v{new_version}.pt"
+
+        local_model_path = os.path.join(MODEL_SAVE_PATH, new_pt_filename)
 
         torch.save(model.state_dict(), local_model_path)
         print(f"Model saved to {local_model_path}")
@@ -176,4 +176,14 @@ with DAG("train_base_model_ec2", default_args=default_args, schedule_interval=No
         trigger_rule=TriggerRule.ALL_SUCCESS,
     )
 
-    download_task >> train_task >> upload_task
+    trigger_train_dag = TriggerDagRunOperator(
+        task_id="train_art",
+        trigger_dag_id="train_defence_models_ec2",
+        wait_for_completion=False,
+        conf={
+            "model_name": "{{ ti.xcom_pull(task_ids='train_model', key='model_file') }}",
+            "h5_name": "{{ ti.xcom_pull(task_ids='download_hdf5', key='hdf5_file') }}"
+        },
+    )
+
+    download_task >> train_task >> upload_task >> trigger_train_dag
