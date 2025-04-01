@@ -18,7 +18,7 @@ DATASET_PATH = "/home/ubuntu/dev/mlops_models/Airflow/data"  # Update based on E
 # Ensure data directories exist
 LOCAL_SAVE_DIR = "/home/ubuntu/data/"
 os.makedirs(LOCAL_SAVE_DIR, exist_ok=True)
-# test 21
+# test 211
 
 def load_images_and_labels(**kwargs):
     conf = kwargs.get("dag_run").conf if kwargs.get("dag_run") else {}
