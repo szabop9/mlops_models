@@ -79,7 +79,7 @@ def train_art_defence_model(**kwargs):
     adv_trainer = AdversarialTrainer(classifier, attacks=attack, ratio=0.5)
 
     # Train with adversarial training
-    adv_trainer.fit(x, y, nb_epochs=5)
+    adv_trainer.fit(x, y, nb_epochs=1)
 
     classifier = adv_trainer.classifier
 
