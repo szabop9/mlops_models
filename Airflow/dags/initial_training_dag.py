@@ -178,14 +178,14 @@ with DAG("train_base_model_ec2", default_args=default_args, schedule_interval=No
         trigger_rule=TriggerRule.ALL_SUCCESS,
     )
 
-    # trigger_train_dag = TriggerDagRunOperator(
-    #     task_id="train_art",
-    #     trigger_dag_id="train_defence_models_ec2",
-    #     wait_for_completion=False,
-    #     conf={
-    #         "model_name": "{{ ti.xcom_pull(task_ids='train_model', key='model_file') }}",
-    #         "h5_name": "{{ ti.xcom_pull(task_ids='download_hdf5', key='hdf5_file') }}"
-    #     },
-    # )
+    trigger_train_dag = TriggerDagRunOperator(
+        task_id="train_art",
+        trigger_dag_id="train_defence_models_ec2",
+        wait_for_completion=False,
+        conf={
+            "model_name": "{{ ti.xcom_pull(task_ids='train_model', key='model_file') }}",
+            "h5_name": "{{ ti.xcom_pull(task_ids='download_hdf5', key='hdf5_file') }}"
+        },
+    )
 
-    download_task >> train_task >> upload_task# >> trigger_train_dag
+    download_task >> train_task >> upload_task >> trigger_train_dag
