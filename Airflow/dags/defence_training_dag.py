@@ -177,11 +177,9 @@ def train_deeprobust_defence_model(**kwargs):
 
 
 
-def train_cleverhans_defence_model(**kwargs):
-    x = 5
-    y = 3
-    print(x)
-
+# def train_cleverhans_defence_model():
+#     print("SOMETHING2")
+#
 # def upload_defence_model():
 #     print("SOMETHING3")
 
@@ -198,19 +196,19 @@ with DAG("train_defence_models_ec2", default_args=default_args, schedule_interva
         task_id="train_deeprobust_model",
         python_callable=train_deeprobust_defence_model
     )
-
-    train_cleverhans_task = PythonOperator(
-        task_id="train_cleverhans_model",
-        python_callable=train_cleverhans_defence_model
-    )
-
+    #
+    # train_cleverhans_task = PythonOperator(
+    #     task_id="train_cleverhans_model",
+    #     python_callable=train_cleverhans_defence_model
+    # )
+    #
     # upload_task = PythonOperator(
     #     task_id="upload_defence_models",
     #     python_callable=upload_defence_model,
     #     trigger_rule=TriggerRule.ALL_SUCCESS
     # )
 
-    train_art_task >> train_deeprobust_task >> train_cleverhans_task #>> upload_task
+    train_art_task >> train_deeprobust_task #>> train_deeprobust_task >> upload_task
 
 
 # ----------------------------------------------------------------------------------------
