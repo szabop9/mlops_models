@@ -113,7 +113,7 @@ def train_art_defence_model(**kwargs):
 
 
 def train_deeprobust_defence_model(**kwargs):
-    device = "cpu"
+    device = torch.device("cpu")
 
     model_path = kwargs["ti"].xcom_pull(task_ids="train_art_model", key="base_model")
     h5_name = kwargs["ti"].xcom_pull(task_ids="train_art_model", key="h5_file")
