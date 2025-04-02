@@ -136,18 +136,16 @@ def train_deeprobust_defence_model(**kwargs):
     images = torch.tensor(images).unsqueeze(1)  # Add channel dimension
     labels = torch.tensor(labels)
 
-    # Create separate TensorDatasets
-    x_dataset = TensorDataset(images)
-    y_dataset = TensorDataset(labels)
+    # Create a single TensorDataset
+    dataset = TensorDataset(images, labels)
 
-    # Create separate DataLoaders
-    x_loader = DataLoader(x_dataset, batch_size=64, shuffle=True)
-    y_loader = DataLoader(y_dataset, batch_size=64, shuffle=True)
+    # Create one DataLoader that returns (data, label) tuples
+    loader = DataLoader(dataset, batch_size=64, shuffle=True)
 
     # x, y = dataloader_to_numpy(loader)
 
     f = FGSMtraining(model, device)
-    defense_model = f.generate(x_loader, y_loader, epoch_num=1)
+    defense_model = f.generate(loader, loader, epoch_num=1)
 
     base_name = "deeprobust/deeprobust_defense_model"
     s3_client = boto3.client("s3")
