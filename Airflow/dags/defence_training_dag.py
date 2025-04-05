@@ -1,6 +1,4 @@
 import argparse
-import h5py
-import torch
 from torch.utils.data import TensorDataset, DataLoader
 import boto3
 import h5py
@@ -13,6 +11,8 @@ from torchvision import datasets, transforms
 from torch.optim.lr_scheduler import StepLR
 import numpy as np
 import os
+from airflow.operators.trigger_dagrun import TriggerDagRunOperator
+
 
 from datetime import datetime
 from airflow import DAG
@@ -265,9 +265,6 @@ def train_cleverhans_defence_model(**kwargs):
     print(f"Uploaded model to {s3_uri}")
 
 
-# def upload_defence_model():
-#     print("SOMETHING3")
-
 # Define DAG
 default_args = {"owner": "airflow", "start_date": datetime.now()}
 
@@ -287,11 +284,14 @@ with DAG("train_defence_models_ec2", default_args=default_args, schedule_interva
         python_callable=train_cleverhans_defence_model
     )
 
-    # upload_task = PythonOperator(
-    #     task_id="upload_defence_models",
-    #     python_callable=upload_defence_model,
-    #     trigger_rule=TriggerRule.ALL_SUCCESS
-    # )
+    trigger_eval_dag = TriggerDagRunOperator(
+        task_id="eval_models_task",
+        trigger_dag_id="evaluate_models_ec2",
+        wait_for_completion=False,
+        conf={
+            "h5_file": "{{ ti.xcom_pull(task_ids='train_art_task', key='h5_file') }}"
+        },
+    )
 
     train_art_task >> train_deeprobust_task >> train_cleverhans_task# >> upload_task
 
