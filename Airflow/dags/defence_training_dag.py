@@ -258,7 +258,7 @@ def train_cleverhans_defence_model(**kwargs):
     new_pt_filename = f"{base_name}_v{new_version}.pt"
 
     # Save the trained model
-    torch.save(model.state_dict(), f"{MODEL_SAVE_PATH}{base_name}_v{new_version}")
+    torch.save(model.state_dict(), f"{MODEL_SAVE_PATH}{base_name}_v{new_version}.pt")
 
     s3_client.upload_file(f"{MODEL_SAVE_PATH}{base_name}_v{new_version}.pt", S3_BUCKET, new_pt_filename)
     s3_uri = f"s3://{S3_BUCKET}/{new_pt_filename}"
