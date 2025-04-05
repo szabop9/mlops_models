@@ -293,7 +293,7 @@ with DAG("train_defence_models_ec2", default_args=default_args, schedule_interva
     #     trigger_rule=TriggerRule.ALL_SUCCESS
     # )
 
-    train_art_task >> train_deeprobust_task #>> train_deeprobust_task >> upload_task
+    train_art_task >> train_deeprobust_task>> train_deeprobust_task# >> upload_task
 
 
 # ----------------------------------------------------------------------------------------
