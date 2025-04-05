@@ -23,7 +23,7 @@ from art.attacks.evasion import FastGradientMethod
 from art.defences.trainer import AdversarialTrainer
 from art.estimators.classification import PyTorchClassifier
 
-from deeprobust.image.defense.fgsmtraining import FGSMtraining
+# from deeprobust.image.defense.fgsmtraining import FGSMtraining
 
 from cleverhans.torch.attacks.fast_gradient_method import fast_gradient_method
 
