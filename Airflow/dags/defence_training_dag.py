@@ -25,6 +25,9 @@ from art.estimators.classification import PyTorchClassifier
 
 from deeprobust.image.defense.fgsmtraining import FGSMtraining
 
+from cleverhans.torch.attacks.fast_gradient_method import fast_gradient_method
+
+
 MODEL_SAVE_PATH = "/home/ubuntu/trained_models/"
 S3_BUCKET = "ai22m020-models"
 
@@ -118,6 +121,71 @@ def train_deeprobust_defence_model(**kwargs):
     model_path = kwargs["ti"].xcom_pull(task_ids="train_art_model", key="base_model")
     h5_name = kwargs["ti"].xcom_pull(task_ids="train_art_model", key="h5_file")
 
+    # model = Net()
+    #
+    # state_dict = torch.load(
+    #     model_path, map_location=torch.device('cpu'))
+    #
+    # model.load_state_dict(state_dict)
+    #
+    # # Load the HDF5 file
+    # with h5py.File(h5_name, "r") as hf:
+    #     images = hf["images"][:]
+    #     labels = hf["labels"][:]
+    #
+    # # Preprocess the data (normalize just like torchvision)
+    # images = images.astype(np.float32) / 255.0
+    # images = (images - 0.1307) / 0.3081
+    # images = torch.tensor(images).unsqueeze(1)  # Add channel dimension
+    # labels = torch.tensor(labels)
+    #
+    # # Create a single TensorDataset
+    # dataset = TensorDataset(images, labels)
+    #
+    # # Create one DataLoader that returns (data, label) tuples
+    # loader = DataLoader(dataset, batch_size=64, shuffle=True)
+    #
+    # # x, y = dataloader_to_numpy(loader)
+    #
+    # f = FGSMtraining(model, device)
+    # defense_model = f.generate(loader, loader, epoch_num=1)
+    #
+    # base_name = "deeprobust/deeprobust_defense_model"
+    # s3_client = boto3.client("s3")
+    #
+    # existing_files = s3_client.list_objects_v2(Bucket=S3_BUCKET, Prefix=base_name)
+    # existing_versions = []
+    # if "Contents" in existing_files:
+    #     for obj in existing_files["Contents"]:
+    #         filename = obj["Key"]
+    #         if filename.startswith(base_name) and filename.endswith(".pt"):
+    #             parts = filename.replace(".pt", "").split("_v")
+    #             if len(parts) == 2 and parts[1].isdigit():
+    #                 existing_versions.append(int(parts[1]))
+    #
+    # new_version = max(existing_versions, default=0) + 1
+    #
+    # new_pt_filename = f"{base_name}_v{new_version}.pt"
+    #
+    # # Save the trained model
+    # torch.save(defense_model.state_dict(), f"{MODEL_SAVE_PATH}{base_name}_v{new_version}")
+    #
+    # s3_client.upload_file(f"{MODEL_SAVE_PATH}{base_name}_v{new_version}.pt", S3_BUCKET, new_pt_filename)
+    # s3_uri = f"s3://{S3_BUCKET}/{new_pt_filename}"
+    # print(f"Uploaded model to {s3_uri}")
+
+    kwargs["ti"].xcom_push(key="base_model", value=model_path)
+    kwargs["ti"].xcom_push(key="h5_file", value=h5_name)
+
+
+
+
+def train_cleverhans_defence_model(**kwargs):
+    device = torch.device("cpu")
+
+    model_path = kwargs["ti"].xcom_pull(task_ids="train_art_model", key="base_model")
+    h5_name = kwargs["ti"].xcom_pull(task_ids="train_art_model", key="h5_file")
+
     model = Net()
 
     state_dict = torch.load(
@@ -142,12 +210,37 @@ def train_deeprobust_defence_model(**kwargs):
     # Create one DataLoader that returns (data, label) tuples
     loader = DataLoader(dataset, batch_size=64, shuffle=True)
 
-    # x, y = dataloader_to_numpy(loader)
+    # Loss function and optimizer
+    criterion = nn.CrossEntropyLoss()
+    optimizer = optim.Adam(model.parameters(), lr=0.001)
 
-    f = FGSMtraining(model, device)
-    defense_model = f.generate(loader, loader, epoch_num=1)
+    epsilon = 0.3
+    num_epochs = 1  # Number of adversarial training epochs
 
-    base_name = "deeprobust/deeprobust_defense_model"
+    for epoch in range(num_epochs):
+        total_loss = 0
+        for images, labels in loader:
+            images, labels = images.to(device), labels.to(device)
+
+            # Generate adversarial examples
+            images_adv = generate_adversarial_examples(model, images, labels, epsilon)
+
+            # Combine clean and adversarial examples (50% each)
+            images_combined = torch.cat([images, images_adv])
+            labels_combined = torch.cat([labels, labels])
+
+            # Forward pass
+            optimizer.zero_grad()
+            outputs = model(images_combined)
+            loss = criterion(outputs, labels_combined)
+
+            # Backpropagation
+            loss.backward()
+            optimizer.step()
+
+            total_loss += loss.item()
+
+    base_name = "cleverhans/cleverhans_defense_model"
     s3_client = boto3.client("s3")
 
     existing_files = s3_client.list_objects_v2(Bucket=S3_BUCKET, Prefix=base_name)
@@ -165,21 +258,13 @@ def train_deeprobust_defence_model(**kwargs):
     new_pt_filename = f"{base_name}_v{new_version}.pt"
 
     # Save the trained model
-    torch.save(defense_model.state_dict(), f"{MODEL_SAVE_PATH}{base_name}_v{new_version}")
+    torch.save(model.state_dict(), f"{MODEL_SAVE_PATH}{base_name}_v{new_version}")
 
     s3_client.upload_file(f"{MODEL_SAVE_PATH}{base_name}_v{new_version}.pt", S3_BUCKET, new_pt_filename)
     s3_uri = f"s3://{S3_BUCKET}/{new_pt_filename}"
     print(f"Uploaded model to {s3_uri}")
 
-    kwargs["ti"].xcom_push(key="base_model", value=model_path)
-    kwargs["ti"].xcom_push(key="h5_file", value=h5_name)
 
-
-
-
-# def train_cleverhans_defence_model():
-#     print("SOMETHING2")
-#
 # def upload_defence_model():
 #     print("SOMETHING3")
 
@@ -196,12 +281,12 @@ with DAG("train_defence_models_ec2", default_args=default_args, schedule_interva
         task_id="train_deeprobust_model",
         python_callable=train_deeprobust_defence_model
     )
-    #
-    # train_cleverhans_task = PythonOperator(
-    #     task_id="train_cleverhans_model",
-    #     python_callable=train_cleverhans_defence_model
-    # )
-    #
+
+    train_cleverhans_task = PythonOperator(
+        task_id="train_cleverhans_model",
+        python_callable=train_cleverhans_defence_model
+    )
+
     # upload_task = PythonOperator(
     #     task_id="upload_defence_models",
     #     python_callable=upload_defence_model,
@@ -212,6 +297,10 @@ with DAG("train_defence_models_ec2", default_args=default_args, schedule_interva
 
 
 # ----------------------------------------------------------------------------------------
+def generate_adversarial_examples(model, images, labels, epsilon):
+    images_adv = fast_gradient_method(model, images, epsilon, norm=float("inf"))
+    return images_adv
+
 def dataloader_to_numpy(data_loader):
     all_data = []
     all_labels = []
