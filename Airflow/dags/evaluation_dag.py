@@ -1,3 +1,4 @@
+import argparse
 from datetime import datetime
 
 import foolbox as fb
@@ -16,7 +17,11 @@ from torch.utils.data import DataLoader, TensorDataset, random_split
 from torchvision import datasets, transforms
 from torch.optim.lr_scheduler import StepLR
 import numpy as np
+import boto3
+import os
 
+S3_BUCKET = "ai22m020-models"
+MODEL_SAVE_PATH = "/home/ubuntu/eval/"
 
 def evaluate_models(**kwargs):
     conf = kwargs.get("dag_run").conf if kwargs.get("dag_run") else {}
@@ -26,16 +31,29 @@ def evaluate_models(**kwargs):
     deeprobust_path = conf.get("deeprobust_path")
     cleverhans_path = conf.get("cleverhans_path")
 
+
+
+
+    s3_client = boto3.client("s3")
+
+    art_local_path = os.path.join(MODEL_SAVE_PATH, os.path.basename(art_path))
+    deeprobust_local_path = os.path.join(MODEL_SAVE_PATH, os.path.basename(deeprobust_path))
+    ch_local_path = os.path.join(MODEL_SAVE_PATH, os.path.basename(cleverhans_path))
+
+    s3_client.download_file(S3_BUCKET, art_path, art_local_path)
+    s3_client.download_file(S3_BUCKET, deeprobust_path, deeprobust_local_path)
+    s3_client.download_file(S3_BUCKET, cleverhans_path, ch_local_path)
+
     art_model = Net()
     cleverhans_model = Net()
     deeprobust_model = Net()
 
     state_dict_art = torch.load(
-        art_path, map_location=torch.device('cpu'))
+        art_local_path, map_location=torch.device('cpu'))
     state_dict_deeprobust = torch.load(
-        deeprobust_path, map_location=torch.device('cpu'))
+        deeprobust_local_path, map_location=torch.device('cpu'))
     state_dict_cleverhans = torch.load(
-        cleverhans_path, map_location=torch.device('cpu'))
+        ch_local_path, map_location=torch.device('cpu'))
 
     art_model.load_state_dict(state_dict_art)
     deeprobust_model.load_state_dict(state_dict_deeprobust)
