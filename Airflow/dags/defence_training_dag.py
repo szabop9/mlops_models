@@ -284,7 +284,8 @@ with DAG("train_defence_models_ec2", default_args=default_args, schedule_interva
 
     train_cleverhans_task = PythonOperator(
         task_id="train_cleverhans_model",
-        python_callable=train_cleverhans_defence_model
+        python_callable=train_cleverhans_defence_model,
+        trigger_rule=TriggerRule.ALL_SUCCESS,
     )
 
     trigger_eval_dag = TriggerDagRunOperator(
@@ -299,7 +300,7 @@ with DAG("train_defence_models_ec2", default_args=default_args, schedule_interva
         },
     )
 
-    train_art_task >> train_deeprobust_task >> train_cleverhans_task# >> upload_task
+    train_art_task >> train_deeprobust_task >> train_cleverhans_task >> trigger_eval_dag
 
 
 # ----------------------------------------------------------------------------------------
