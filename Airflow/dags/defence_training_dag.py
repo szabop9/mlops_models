@@ -292,11 +292,10 @@ with DAG("train_defence_models_ec2", default_args=default_args, schedule_interva
         trigger_dag_id="evaluate_models_ec2",
         wait_for_completion=False,
         conf={
-            "h5_file": "{{ ti.xcom_pull(task_ids='train_art_task', key='h5_file') }}",
-            "art_path": "{{ ti.xcom_pull(task_ids='train_art_task', key='art_path') }}",
-            "deeprobust_path": "{{ ti.xcom_pull(task_ids='train_deeprobust_task', key='deeprobust_path') }}",
-            "cleverhans_path": "{{ ti.xcom_pull(task_ids='train_cleverhans_task', key='cleverhans_path') }}",
-
+            "h5_file": "{{ ti.xcom_pull(task_ids='train_art_model', key='h5_file') }}",
+            "art_path": "{{ ti.xcom_pull(task_ids='train_art_model', key='art_path') }}",
+            "deeprobust_path": "{{ ti.xcom_pull(task_ids='train_deeprobust_model', key='deeprobust_path') }}",
+            "cleverhans_path": "{{ ti.xcom_pull(task_ids='train_cleverhans_model', key='cleverhans_path') }}"
         },
     )
 
