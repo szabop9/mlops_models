@@ -64,8 +64,8 @@ def evaluate_models(**kwargs):
     cleverhans_model.eval()
 
     with h5py.File(h5_file, 'r') as hf:
-        images = hf['images'][:]
-        labels = hf['labels'][:]
+        images = hf['images'][:300]
+        labels = hf['labels'][:300]
 
     images = images.astype(np.float32) / 255.0  # Normalize to [0,1]
     images = (images - 0.1307) / 0.3081  # Further normalize
