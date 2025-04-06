@@ -174,7 +174,7 @@ def train_deeprobust_defence_model(**kwargs):
     # s3_client.upload_file(f"{MODEL_SAVE_PATH}{base_name}_v{new_version}.pt", S3_BUCKET, new_pt_filename)
     # s3_uri = f"s3://{S3_BUCKET}/{new_pt_filename}"
     # print(f"Uploaded model to {s3_uri}")
-    kwargs["ti"].xcom_push(key="deeprobust_path", value="deeprobust/art_defense_model_v1.pt")
+    kwargs["ti"].xcom_push(key="deeprobust_path", value="deeprobust/deeprobust_defense_model_v1.pt")
     kwargs["ti"].xcom_push(key="base_model", value=model_path)
     kwargs["ti"].xcom_push(key="h5_file", value=h5_name)
 
