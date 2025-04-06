@@ -82,7 +82,7 @@ def train_art_defence_model(**kwargs):
     adv_trainer = AdversarialTrainer(classifier, attacks=attack, ratio=0.5)
 
     # Train with adversarial training
-    adv_trainer.fit(x, y, nb_epochs=1)
+    adv_trainer.fit(x, y, nb_epochs=40)
 
     classifier = adv_trainer.classifier
 
@@ -216,7 +216,7 @@ def train_cleverhans_defence_model(**kwargs):
     optimizer = optim.Adam(model.parameters(), lr=0.001)
 
     epsilon = 0.3
-    num_epochs = 1  # Number of adversarial training epochs
+    num_epochs = 40  # Number of adversarial training epochs
 
     for epoch in range(num_epochs):
         total_loss = 0
