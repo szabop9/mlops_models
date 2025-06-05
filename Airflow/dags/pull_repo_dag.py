@@ -21,7 +21,7 @@ with DAG(
 
     pull_repo_task = BashOperator(
         task_id="pull_latest_from_dev",
-        bash_command="/home/ubuntu/dev/mlops_models",
+        bash_command="/home/ubuntu/dev/mlops_models/pull_dev_branch.sh",
     )
 
     pull_repo_task
