@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - master
+      - dev
 
 jobs:
   trigger-airflow:
@@ -13,9 +14,20 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v3
 
-      - name: Send cURL Request to Airflow DAG
+      - name: Trigger Different DAGs Based on Branch
         run: |
-          curl -X POST "http://54.229.187.203:8080/api/v1/dags/convert_images_to_hdf5_ec2/dagRuns" \
-          -H "Content-Type: application/json" \
-          --user "admin:admin" \
-          --data "{\"conf\":{\"dataset_name\": \"mnist\", \"binarization\": true}}"
+          if [[ "${{ github.ref }}" == "refs/heads/master" ]]; then
+            echo "Triggered on master – sending request to 'prod' DAG..."
+            curl -X POST "http://54.229.187.203:8080/api/v1/dags/convert_images_to_hdf5_ec2/dagRuns" \
+              -H "Content-Type: application/json" \
+              --user "admin:admin" \
+              --data '{"conf": {"dataset_name": "mnist", "binarization": true}}'
+          elif [[ "${{ github.ref }}" == "refs/heads/dev" ]]; then
+            echo "Triggered on dev – sending request to 'pull_mlops_dev_branch' DAG..."
+            curl -X POST "http://54.229.187.203:8080/api/v1/dags/pull_mlops_dev_branch/dagRuns" \
+              -H "Content-Type: application/json" \
+              --user "admin:admin" \
+              --data '{}'
+          else
+            echo "This branch is not configured to trigger any DAG."
+          fi
