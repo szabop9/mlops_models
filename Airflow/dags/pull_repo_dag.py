@@ -21,7 +21,7 @@ with DAG(
 
     pull_repo_task = BashOperator(
         task_id="pull_latest_from_dev",
-        bash_command="bash -c ../../pull_dev_branch.sh",
+        bash_command="../../pull_dev_branch.sh",
     )
 
     pull_repo_task
